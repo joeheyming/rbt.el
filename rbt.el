@@ -18,6 +18,7 @@
 ;; rbt-review-discard --> useful when your cursor is currently over a review id
 
 (provide 'rbt)
+(require 'json)
 
 (defun rbt-custom-compile (cmd)
   "Run a custom compile command in a custom buffer named *rbt*"
@@ -50,7 +51,7 @@
 
 (defun rbt-current-review-id ()
   "Gets the current review id under your cursor, if any"
-  (if (string-match "\\([0-9]+\\)" (current-word))
+  (if (string-match "\\([0-9]+\\)" (or (current-word) ""))
       (match-string 0 (current-word))))
 
 (defun rbt-review (&optional review-id commit-id)
@@ -62,8 +63,27 @@
   (if (not commit-id) (setq commit-id "--parent=HEAD~1"))
 
   (message (format "Review %s, Commit: %s" review-id commit-id))
-  (setq review-id (if review-id (format "-r %s" review-id) ""))
-  (rbt-custom-compile (format "rbt post %s --parent master -g -o %s" review-id commit-id))
+  (let* (
+        (review-id-arg (if (> (length review-id) 0) (format "-r %s" review-id) ""))
+
+        ;; Read any json info about this specific review request
+        (review-json
+         (if review-id 
+             (json-read-from-string (shell-command-to-string (format "rbt api-get /review-requests/%s/" review-id)) )
+           nil))
+
+        ;; locate the target people out of the review
+        (target_people (format "%s" (mapconcat 'identity (mapcar '(lambda(x) (assoc-default 'title x)) (assoc-default 'target_people (assoc-default 'review_request review-json) )) ", ")))
+
+        ;; construct a target people arg for rbt post
+        (target-people-arg (if (> (length target_people) 0) (format "--target-people \"%s\"" target_people)  ""))
+
+        ;; construct the rbt post command
+        (post-command (format "rbt post %s %s --parent master -g -o %s" review-id-arg target-people-arg commit-id))
+        )
+    (message (format "Running: %s" post-command))
+    (rbt-custom-compile post-command)
+    )
   )
 
 (defun rbt-review-commit (review-id)
