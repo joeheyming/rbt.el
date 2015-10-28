@@ -79,7 +79,7 @@ Return the selected review or nil"
   (let*
       ((reviews-json
         (json-read-from-string (shell-command-to-string (format "rbt api-get /review-requests/ --from-user=$USER"))))
-       (reviews (mapcar '(lambda(x) (format "%s -- %s"
+       (reviews (mapcar #'(lambda(x) (format "%s -- %s"
                                             (assoc-default 'id x)
                                             (assoc-default 'summary x)
                                             ))
@@ -110,7 +110,7 @@ Optional argument COMMIT-ID A git commit id."
            nil))
 
         ;; locate the target people out of the review
-        (target_people (format "%s" (mapconcat 'identity (mapcar '(lambda(x) (assoc-default 'title x)) (assoc-default 'target_people (assoc-default 'review_request review-json) )) ", ")))
+        (target_people (format "%s" (mapconcat 'identity (mapcar #'(lambda(x) (assoc-default 'title x)) (assoc-default 'target_people (assoc-default 'review_request review-json) )) ", ")))
 
         ;; construct a target people arg for rbt post
         (target-people-arg (if (> (length target_people) 0) (format "--target-people \"%s\"" target_people)  ""))
@@ -127,7 +127,13 @@ Optional argument COMMIT-ID A git commit id."
   "Run `rbt-review' with a commit from the current word you are looking at.
 The user will be asked which review to use with the commit."
   (interactive)
-  (rbt-review (rbt-select-review) (current-word)))
+  (let ((review-id (rbt-select-review))
+        (commit (current-word)))
+
+    (message (format "review-id = %s" review-id))
+    (message (format "commit = %s" commit))
+    
+    (rbt-review review-id commit)))
 
 (defun rbt-review-with-selected()
   "Ask the user which review to post the latest git changes to"
