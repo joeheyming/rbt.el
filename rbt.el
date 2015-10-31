@@ -23,7 +23,6 @@
 ;;
 ;; rbt-review-discard --> useful when your cursor is currently over a review id
 
-
 ;;; Code:
 
 (require 'json)
@@ -51,6 +50,7 @@
       (setq rbt-last-root (vc-call-backend 'Git 'root (file-name-directory (buffer-file-name))))
     (error rbt-last-root)))
 
+;;;###autoload
 (defun rbt-status ()
   "Run 'rbt status' and puts the output in *rbt*."
   (interactive)
@@ -89,6 +89,7 @@ Return the selected review or nil"
     (if selected-review (car (split-string selected-review " -- ")))
     ))
 
+;;;###autoload
 (defun rbt-review (&optional review-id commit-id)
   "Run 'rbt review'.
 If no review id is supplied, we create a new review with the git HEAD.
@@ -121,6 +122,7 @@ Optional argument COMMIT-ID A git commit id."
     )
   )
 
+;;;###autoload
 (defun rbt-review-commit ()
   "Run `rbt-review' with a commit from the current word you are looking at.
 The user will be asked which review to use with the commit."
@@ -134,6 +136,7 @@ The user will be asked which review to use with the commit."
   (interactive)
   (rbt-review (rbt-select-review)))
 
+;;;###autoload
 (defun rbt-review-close (&optional review-id)
   "Close a review.  Try to get the REVIEW-ID from the current word."
   (interactive)
@@ -141,6 +144,7 @@ The user will be asked which review to use with the commit."
       (setq review-id (rbt-current-review-id)))
   (rbt-custom-compile (format "rbt close --close-type submitted %s" review-id) ))
 
+;;;###autoload
 (defun rbt-review-discard (&optional review-id)
   "Discard a review.  Try to get the REVIEW-ID from the current word."
   (interactive)
