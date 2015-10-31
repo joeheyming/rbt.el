@@ -99,7 +99,6 @@ Optional argument COMMIT-ID A git commit id."
       (setq review-id (rbt-current-review-id)))
   (if (not commit-id) (setq commit-id "--parent=HEAD~1"))
 
-  (message (format "Review %s, Commit: %s" review-id commit-id))
   (let* (
         (review-id-arg (if (> (length review-id) 0) (format "-r %s" review-id) ""))
 
@@ -118,7 +117,6 @@ Optional argument COMMIT-ID A git commit id."
         ;; construct the rbt post command
         (post-command (format "rbt post %s %s --parent master -g -o %s" review-id-arg target-people-arg commit-id))
         )
-    (message (format "Running: %s" post-command))
     (rbt-custom-compile post-command)
     )
   )
@@ -129,10 +127,6 @@ The user will be asked which review to use with the commit."
   (interactive)
   (let ((review-id (rbt-select-review))
         (commit (current-word)))
-
-    (message (format "review-id = %s" review-id))
-    (message (format "commit = %s" commit))
-    
     (rbt-review review-id commit)))
 
 (defun rbt-review-with-selected()
