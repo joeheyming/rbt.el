@@ -3,7 +3,7 @@
 ;; Author: Joe Heyming <joeheyming@gmail.com>
 ;; Version: 0.1
 ;; Keywords: reviewboard, rbt
-;; Package-Requires: ((popup "0.5.3"))
+;; Package-Requires: ((popup "0.5.3") (magit "20160128.1201")
 ;;
 ;;; Commentary:
 ;; 
@@ -27,28 +27,27 @@
 
 (require 'json)
 (require 'popup)
+(require 'magit-git)
 
 (defun rbt-custom-compile (cmd)
   "Run a custom compile CMD in a custom buffer named *rbt*."
   (let ((mybuf (current-buffer)))
     (if (get-buffer "*rbt*")
-        (kill-buffer "*rbt"))
+        (kill-buffer "*rbt*"))
     (let ((default-dir (vc-get-root)))
       (compile cmd)
       (switch-to-buffer "*compilation*")
-      (rename-buffer "rbt")
-      (switch-to-buffer mybuf)
-      )
-    ))
-
-;; Save the last root you did an RBT command with.
-(defvar rbt-last-root)
+      (rename-buffer "*rbt*")
+      )))
 
 (defun vc-get-root ()
   "Get the current root of your version control system."
-  (condition-case nil
-      (setq rbt-last-root (vc-call-backend 'Git 'root (file-name-directory (buffer-file-name))))
-    (error rbt-last-root)))
+  (if (buffer-file-name)
+      (magit-toplevel (file-name-directory (buffer-file-name)))
+    (progn
+      (let ((x (read-file-name "Enter git repo root:")))
+        (vc-call-backend 'Git 'root (file-name-directory x))))
+    ))
 
 ;;;###autoload
 (defun rbt-status ()
@@ -60,8 +59,8 @@
 
 (defun rbt-current-review-id ()
   "Gets the current review id under your cursor, if any."
-  (if (string-match "\\([0-9]+\\)" (or (current-word) ""))
-      (match-string 0 (current-word))))
+  (if (string-match "r\\/\\([0-9]+\\)" (or (current-word) ""))
+      (match-string 1 (current-word))))
 
 (defvar rbt-popup-keymap
   (let ((keymap (make-sparse-keymap)))
@@ -71,22 +70,23 @@
     keymap)
   )
 
+(defvar rbt-submit-new-placeholder "-- Submit new review --")
 
 (defun rbt-select-review()
   "Query with popup containing the current reviews for this user.
 Return the selected review or nil"
   (interactive)
   (let*
-      ((reviews-json
-        (json-read-from-string (shell-command-to-string (format "rbt api-get /review-requests/ --from-user=$USER"))))
-       (reviews (mapcar #'(lambda(x) (format "%s -- %s"
-                                            (assoc-default 'id x)
-                                            (assoc-default 'summary x)
-                                            ))
-                        (assoc-default 'review_requests reviews-json)))
+      ((cmd (format "rbt api-get /review-requests/ --from-user=$USER"))
+       (reviews-json (json-read-from-string (shell-command-to-string cmd)))
+       (reviews (append (mapcar
+                 #'(lambda(x)
+                     (format "%s -- %s" (assoc-default 'id x) (assoc-default 'summary x)))
+                 (assoc-default 'review_requests reviews-json)) (list rbt-submit-new-placeholder)))
        (selected-review))
     (setq selected-review (popup-menu* reviews :keymap rbt-popup-keymap))
-    (if selected-review (car (split-string selected-review " -- ")))
+    (if (string= selected-review rbt-submit-new-placeholder) ""
+      (if selected-review (car (split-string selected-review " -- "))))
     ))
 
 ;;;###autoload
@@ -124,8 +124,12 @@ Optional argument COMMIT-ID A git commit id."
 
 ;;;###autoload
 (defun rbt-review-commit ()
-  "Run `rbt-review' with a commit from the current word you are looking at.
-The user will be asked which review to use with the commit."
+  "Run `rbt-review' with a commit id in a magit log buffer.
+The user will be asked which review to use with the commit.
+Intended to be used with magit.
+If you are looking at the log buffer for your git repository,
+ you can run `rbt-review-commit' while over the commit id.
+Then rbt.el will prompt which review you want to select."
   (interactive)
   (let ((review-id (rbt-select-review))
         (commit (current-word)))
