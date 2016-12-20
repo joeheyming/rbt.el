@@ -3,7 +3,7 @@
 ;; Author: Joe Heyming <joeheyming@gmail.com>
 ;; Version: 0.2
 ;; Keywords: reviewboard, rbt
-;; Package-Requires: ((popup "0.5.3") (magit "20160128.1201")
+;; Package-Requires: ((popup "0.5.3") (magit "20160128.1201"))
 ;;
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -45,13 +45,14 @@
 
 (defun rbt-custom-compile (cmd)
   "Run a custom compile CMD in a custom buffer named *rbt*."
-  (let ((mybuf (current-buffer)))
+  (let ((mybuf (buffer-name (current-buffer))))
     (if (get-buffer "*rbt*")
         (kill-buffer "*rbt*"))
     (let ((default-dir (vc-get-root)))
       (compile cmd)
       (switch-to-buffer "*compilation*")
       (rename-buffer "*rbt*")
+      (switch-to-buffer mybuf)
       )))
 
 (defun vc-get-root ()
