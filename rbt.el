@@ -1,7 +1,7 @@
 ;;; rbt.el --- Integrate reviewboard with emacs.
 
 ;; Author: Joe Heyming <joeheyming@gmail.com>
-;; Version: 0.2
+;; Version: 0.3
 ;; Keywords: reviewboard, rbt
 ;; Package-Requires: ((popup "0.5.3") (magit "20160128.1201"))
 ;;
